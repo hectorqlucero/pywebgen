@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pywebgen"
+version = "1.0.0"
+description = "Parameter-Driven Web Application Framework - Python Edition"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "Flask>=3.0.0",
+    "Flask-SQLAlchemy>=3.1.0",
+    "Flask-Migrate>=4.0.0",
+    "Flask-Login>=0.6.0",
+    "Flask-WTF>=1.2.0",
+    "SQLAlchemy>=2.0.0",
+    "PyYAML>=6.0",
+    "python-dotenv>=1.0.0",
+    "bcrypt>=4.1.0",
+    "Jinja2>=3.1.0",
+    "click>=8.1.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0.0", "black>=24.0.0", "ruff>=0.1.0"]
+mysql = ["mysqlclient>=2.2.0"]
+postgres = ["psycopg2-binary>=2.9.0"]
+
+[project.scripts]
+pywebgen = "pywebgen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pywebgen*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W"]

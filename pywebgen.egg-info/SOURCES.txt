@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+pywebgen/__init__.py
+pywebgen/cli.py
+pywebgen/engine_render_template.py
+pywebgen/generator.py
+pywebgen/generator_templates.py
+pywebgen/generator_templates2.py
+pywebgen.egg-info/PKG-INFO
+pywebgen.egg-info/SOURCES.txt
+pywebgen.egg-info/dependency_links.txt
+pywebgen.egg-info/entry_points.txt
+pywebgen.egg-info/requires.txt
+pywebgen.egg-info/top_level.txt
