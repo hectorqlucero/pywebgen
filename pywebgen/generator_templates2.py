@@ -2598,7 +2598,7 @@ def generate_models_from_migrations(migrations: list):
     
     # Check for existing table names in models
     existing_tables = set()
-    for match in re.finditer(r"__tablename__\\s*=\\s*[\"'](\\w+)[\"']", content):
+    for match in re.finditer(r'__tablename__\s*=\s*[\\'"](\w+)[\\'"]', content):
         existing_tables.add(match.group(1))
     
     SQL_TYPE_TO_SA = {{
