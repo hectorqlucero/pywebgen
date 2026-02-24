@@ -109,22 +109,11 @@ Auto-generated from entity configs with manual overrides.
 from engine.menu import get_auto_menu_config
 
 
-# Define menu order here - items not listed appear at the end
 def get_menu_order():
     return [
-        ("DASHBOARD", "/dashboard", "bi-speedometer2"),  # Custom item
-        ("Contactos", None, None),  # From entity (href/icon auto-filled)
-        ("Reports", None, None),    # Dropdown
-        ("Users", None, None),      # From entity
+        ("DASHBOARD", "/dashboard", "bi-speedometer2"),
+        ("Users", None, None),
     ]
-
-
-# Custom dropdown items
-custom_dropdowns = {
-    "Reports": [
-        {"label": "Contactos", "href": "/reports/contactos", "icon": "bi-file-earmark-text"},
-    ],
-}
 
 
 def get_menu_config():
@@ -147,21 +136,9 @@ def get_menu_config():
         if item["label"] not in [o[0] for o in order_list]:
             ordered_nav.append(item)
     
-    # Merge dropdowns
-    all_dropdowns = {**auto.get("dropdowns", {}), **custom_dropdowns}
-    
-    # Reorder dropdowns according to order_list
-    ordered_dropdowns = {}
-    for label, _, _ in order_list:
-        if label in all_dropdowns:
-            ordered_dropdowns[label] = all_dropdowns[label]
-    for label, items in all_dropdowns.items():
-        if label not in ordered_dropdowns:
-            ordered_dropdowns[label] = items
-    
     return {
         "nav_links": ordered_nav,
-        "dropdowns": ordered_dropdowns,
+        "dropdowns": auto.get("dropdowns", {}),
     }
 '''
 
@@ -705,14 +682,6 @@ Menu Generation from Entity Configs
 from engine import EntityConfigManager
 
 
-ENTITY_ICONS = {
-    "users": "bi bi-people",
-    "contactos": "bi bi-person-lines-fill",
-    "cars": "bi bi-car-front",
-    "siblings": "bi bi-people-fill",
-}
-
-
 def get_auto_menu_config() -> dict:
     """Generate menu configuration from entity configs."""
     entities = EntityConfigManager.get_all()
@@ -724,7 +693,7 @@ def get_auto_menu_config() -> dict:
         if getattr(cfg, 'menu_hidden', False):
             continue
         
-        icon = ENTITY_ICONS.get(name, "bi bi-folder")
+        icon = "bi bi-folder"
         menu_order = getattr(cfg, 'menu_order', 999)
         
         item = {
@@ -780,14 +749,12 @@ def execute_hook(entity: str, hook_name: str, data: Any) -> Any:
 
 
 def get_model_class(table_name: str):
-    from models import User, Contactos, Cars, Siblings
-    models = {
-        "users": User,
-        "contactos": Contactos,
-        "cars": Cars,
-        "siblings": Siblings,
-    }
-    return models.get(table_name)
+    import models
+    for attr_name in dir(models):
+        attr = getattr(models, attr_name)
+        if hasattr(attr, '__tablename__') and attr.__tablename__ == table_name:
+            return attr
+    return None
 
 
 def save_record(entity: str, data: dict, files: Optional[dict] = None, user_id: Optional[int] = None) -> dict:
@@ -909,13 +876,12 @@ from engine import EntityConfigManager
 
 
 def get_model_class(table_name: str):
-    from models import User, Contactos, Cars, Siblings
-    return {
-        "users": User,
-        "contactos": Contactos,
-        "cars": Cars,
-        "siblings": Siblings,
-    }.get(table_name)
+    import models
+    for attr_name in dir(models):
+        attr = getattr(models, attr_name)
+        if hasattr(attr, '__tablename__') and attr.__tablename__ == table_name:
+            return attr
+    return None
 
 
 def execute_hook(entity: str, hook_name: str, data) -> Any:
@@ -1781,62 +1747,57 @@ def main():
 
 
 def get_dashboard_model_py(project_name: str) -> str:
-    return f'''"""
+    return '''"""
 Dashboard Handler Model
 """
 from sqlalchemy import text
 from models import db
+from engine import EntityConfigManager
 
 
 def get_total(table: str) -> int:
-    result = db.session.execute(text(f"SELECT COUNT(*) as count FROM {{table}}"))
+    result = db.session.execute(text(f"SELECT COUNT(*) as count FROM {table}"))
     row = result.fetchone()
     return row.count if row else 0
 
 
 def get_stats() -> dict:
-    return {{
-        "total_contactos": get_total("contactos"),
-        "total_siblings": get_total("siblings"),
-        "total_cars": get_total("cars"),
-        "total_users": get_total("users"),
-    }}
+    stats = {}
+    for entity in EntityConfigManager.list_entities():
+        cfg = EntityConfigManager.get(entity)
+        if cfg:
+            stats[f"total_{entity}"] = get_total(cfg.table)
+    return stats
 '''
 
 
 def get_dashboard_view_py(project_name: str) -> str:
-    return f'''"""
+    return '''"""
 Dashboard Handler View
 """
+from engine import EntityConfigManager
+
+
 def dashboard_html(title: str, stats: dict) -> str:
+    cards = ""
+    for entity in EntityConfigManager.list_entities():
+        cfg = EntityConfigManager.get(entity)
+        if cfg:
+            stat_key = f"total_{entity}"
+            cards += f"""
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{cfg.title}</h5>
+                    <p class="card-text">{stats.get(stat_key, 0)}</p>
+                </div>
+            </div>
+            """
+    
     return f"""
     <div class="container text-center w-50">
-        <h1 class="text-primary">{{title}}</h1>
+        <h1 class="text-primary">{title}</h1>
         <div class="card-group">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title text-primary">Contactos</h5>
-                    <p class="card-text">{{stats['total_contactos']}}</p>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title text-primary">Siblings</h5>
-                    <p class="card-text">{{stats['total_siblings']}}</p>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title text-primary">Cars</h5>
-                    <p class="card-text">{{stats['total_cars']}}</p>
-                </div>
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title text-primary">Users</h5>
-                <p class="card-text">{{stats['total_users']}}</p>
-            </div>
+            {cards}
         </div>
     </div>
     """
