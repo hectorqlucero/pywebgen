@@ -82,8 +82,12 @@ def render_field(field, value=None) -> str:
         '''
     
     if field_type == "select":
+        options = field.options
+        if field.fk and not options:
+            options = EntityConfigManager.get_fk_options(field.fk, field.fk_id or "id", field.fk_label)
+        
         options_html = ""
-        for opt in field.options:
+        for opt in options:
             selected = "selected" if str(value) == str(opt.get("value", "")) else ""
             options_html += f'<option value="{opt.get("value", "")}" {selected}>{opt.get("label", "")}</option>'
         

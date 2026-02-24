@@ -430,7 +430,7 @@ def save(entity: str):
     if not check_permission(entity):
         return jsonify({"ok": False, "error": tr("error.unauthorized")}), 403
     
-    data = request.form.to_dict()
+    data = {key: request.form.get(key) for key in request.form.keys()}
     files = request.files
     data.pop("csrf_token", None)
     redirect_url = data.pop("_redirect_url", None)
@@ -538,6 +538,8 @@ class FieldConfig:
     hidden_in_form: bool = False
     grid_only: bool = False
     fk: Optional[str] = None
+    fk_id: Optional[str] = None
+    fk_label: Optional[str] = None
     
     @classmethod
     def from_dict(cls, data: dict) -> "FieldConfig":
@@ -552,6 +554,8 @@ class FieldConfig:
             hidden_in_form=data.get("hidden_in_form", False),
             grid_only=data.get("grid_only", False),
             fk=data.get("fk"),
+            fk_id=data.get("fk_id", "id"),
+            fk_label=data.get("fk_label"),
         )
 
 
@@ -673,6 +677,25 @@ class EntityConfigManager:
     @classmethod
     def list_entities(cls) -> list:
         return sorted(cls._configs.keys())
+    
+    @classmethod
+    def get_fk_options(cls, fk_entity: str, fk_id: str = "id", fk_label: str = None) -> list:
+        """Load options from a foreign key entity table."""
+        from models import db
+        from sqlalchemy import text
+        
+        cfg = cls._configs.get(fk_entity)
+        if not cfg:
+            return []
+        
+        label_col = fk_label or cfg.title.lower().replace(" ", "_")
+        
+        try:
+            query = text(f"SELECT {fk_id} AS value, {label_col} AS label FROM {cfg.table} ORDER BY {label_col}")
+            result = db.session.execute(query)
+            return [{"value": str(row.value), "label": str(row.label)} for row in result]
+        except Exception:
+            return []
 '''
 
 
@@ -1079,7 +1102,16 @@ def generate_field(column: dict, fks: list[dict]) -> dict:
     
     fk = next((f for f in fks if f["column"] == col_name), None)
     if fk:
-        return {{"id": col_name, "label": humanize_label(fk["referred_table"]) + " ID", "type": "hidden"}}
+        referred_table = fk["referred_table"]
+        return {{
+            "id": col_name,
+            "label": humanize_label(referred_table),
+            "type": "select",
+            "required": not column.get("nullable", True),
+            "fk": referred_table,
+            "fk_id": "id",
+            "fk_label": humanize_label(referred_table).lower().replace(" ", "_")
+        }}
     
     field = {{"id": col_name, "label": humanize_label(col_name), "type": col_type, "required": not column.get("nullable", True)}}
     if col_type in ("text", "textarea", "email"):
