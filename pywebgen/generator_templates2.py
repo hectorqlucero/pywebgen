@@ -109,11 +109,20 @@ Auto-generated from entity configs with manual overrides.
 from engine.menu import get_auto_menu_config
 
 
+# Define menu order here - items not listed appear at the end
 def get_menu_order():
     return [
-        ("DASHBOARD", "/dashboard", "bi-speedometer2"),
-        ("Users", None, None),
+        ("DASHBOARD", "/dashboard", "bi-speedometer2"),  # Custom item
     ]
+
+
+# Custom dropdown items
+custom_dropdowns = {
+    "Reports": [
+        {"label": "Contactos", "href": "/reports/contactos", "icon": "bi-file-earmark-text"},
+        {"label": "Users", "href": "/reports/users", "icon": "bi-file-earmark-text"},
+    ],
+}
 
 
 def get_menu_config():
@@ -136,9 +145,21 @@ def get_menu_config():
         if item["label"] not in [o[0] for o in order_list]:
             ordered_nav.append(item)
     
+    # Merge dropdowns
+    all_dropdowns = {**auto.get("dropdowns", {}), **custom_dropdowns}
+    
+    # Reorder dropdowns according to order_list
+    ordered_dropdowns = {}
+    for label, _, _ in order_list:
+        if label in all_dropdowns:
+            ordered_dropdowns[label] = all_dropdowns[label]
+    for label, items in all_dropdowns.items():
+        if label not in ordered_dropdowns:
+            ordered_dropdowns[label] = items
+    
     return {
         "nav_links": ordered_nav,
-        "dropdowns": auto.get("dropdowns", {}),
+        "dropdowns": ordered_dropdowns,
     }
 '''
 
