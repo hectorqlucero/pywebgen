@@ -25,6 +25,7 @@ python-dotenv>=1.0.0
 bcrypt>=4.1.0
 click>=8.1.0
 rich>=13.0.0
+ipython>=8.0.0
 
 # Optional database drivers (uncomment as needed)
 # mysqlclient>=2.2.0

@@ -2546,12 +2546,15 @@ Commands:
     python manage.py migrate      # Run database migrations  
     python manage.py seed         # Seed database with demo data
     python manage.py scaffold <table>  # Generate entity from table
+    python manage.py shell        # Start interactive shell with app context
 """
 import os
 import sys
 import re
 import argparse
 import hashlib
+import importlib
+import pkgutil
 from pathlib import Path
 from datetime import datetime
 
@@ -2769,6 +2772,53 @@ def scaffold_all(force: bool = False):
         do_scaffold_all(force)
 
 
+def run_shell():
+    """Start an interactive Python shell with app context."""
+    import importlib
+    import pkgutil
+    from pathlib import Path
+    from app import create_app
+    from models import db
+    
+    app = create_app()
+    
+    local_ns = {{"app": app, "db": db}}
+    
+    handlers_path = Path(__file__).parent / "handlers"
+    for module_info in pkgutil.iter_modules([str(handlers_path)]):
+        module_name = module_info.name
+        module = importlib.import_module(f"handlers.{{module_name}}")
+        
+        for attr_name in dir(module):
+            if not attr_name.startswith("_"):
+                attr = getattr(module, attr_name)
+                if callable(attr):
+                    local_ns[attr_name] = attr
+    
+    subpkg_paths = [p for p in handlers_path.iterdir() if p.is_dir() and (p / "__init__.py").exists()]
+    for subpkg_path in subpkg_paths:
+        subpkg_name = subpkg_path.name
+        try:
+            module = importlib.import_module(f"handlers.{{subpkg_name}}.model")
+            for attr_name in dir(module):
+                if not attr_name.startswith("_"):
+                    attr = getattr(module, attr_name)
+                    if callable(attr):
+                        local_ns[attr_name] = attr
+        except ImportError:
+            pass
+    
+    with app.app_context():
+        try:
+            from IPython import embed
+            print("App context ready. app, db, and all handlers available.")
+            embed(user_ns=local_ns)
+        except ImportError:
+            import code
+            print("App context ready. app, db, and all handlers available.")
+            code.interact(local=local_ns)
+
+
 def main():
     parser = argparse.ArgumentParser(description="{project_name} Management CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -2786,6 +2836,8 @@ def main():
     scaffold_parser.add_argument("--all", action="store_true", help="Scaffold all tables")
     scaffold_parser.add_argument("--force", action="store_true", help="Overwrite existing entities and hooks")
     
+    subparsers.add_parser("shell", help="Start interactive shell with app context")
+    
     args = parser.parse_args()
     
     if args.command == "run":
@@ -2802,6 +2854,8 @@ def main():
         else:
             print("Error: Specify a table name or use --all")
             parser.print_help()
+    elif args.command == "shell":
+        run_shell()
     else:
         parser.print_help()
 

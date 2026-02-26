@@ -12,6 +12,7 @@ Inside generated project:
     python manage.py rollback                # Rollback migration
     python manage.py seed                    # Seed database
     python manage.py run                     # Run development server
+    python manage.py shell                   # Interactive shell with app context
 """
 
 import os

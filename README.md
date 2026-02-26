@@ -194,6 +194,7 @@ python manage.py seed             # Seed database with demo data
 python manage.py scaffold <table> # Scaffold entity from database
 python manage.py scaffold --all   # Scaffold all tables
 python manage.py routes           # List all routes
+python manage.py shell           # Start interactive shell with app context
 ```
 
 ## Entity Configuration
